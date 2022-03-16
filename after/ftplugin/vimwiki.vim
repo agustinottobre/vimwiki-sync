@@ -64,17 +64,19 @@ augroup vimwiki
   function! s:pull_changes()
     if g:zettel_synced==0
       echom "[vimwiki sync] pulling changes"
+
       let g:zettel_synced = 1
+      let gitCommand = "git -C " . g:zettel_dir . " pull --rebase origin " . g:vimwiki_sync_branch
+      let gitCallbacks = {"exit_cb": "My_exit_cb", "close_cb": "My_close_cb"}
+
       if has("nvim")
-        let gitjob = jobstart("git -C " . g:zettel_dir . " pull origin " . g:vimwiki_sync_branch, {"exit_cb": "My_exit_cb", "close_cb": "My_close_cb"})
-        if g:sync_taskwarrior==1
-          let taskjob = jobstart("task sync")
-        endif
+        let gitjob = jobstart(gitCommand, gitCallbacks)
       else
-        let gitjob = job_start("git -C " . g:zettel_dir . " pull origin " . g:vimwiki_sync_branch, {"exit_cb": "My_exit_cb", "close_cb": "My_close_cb"})
-        if g:sync_taskwarrior==1
-          let taskjob = job_start("task sync")
-        endif
+        let gitjob = job_start(gitCommand, gitCallbacks)
+      endif
+
+      if g:sync_taskwarrior==1
+        let taskjob = jobstart("task sync")
       endif
     endif
   endfunction
@@ -83,16 +85,16 @@ augroup vimwiki
   " it seems that Vim terminates before it is executed, so it needs to be
   " fixed
   function! s:push_changes()
+    let gitCommand = "git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch
+
     if has("nvim")
-      let gitjob = jobstart("git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch)
-      if g:sync_taskwarrior==1
-        let taskjob = jobstart("task sync")
-      endif
+      let gitjob = jobstart(gitCommand)
     else
-      let gitjob = job_start("git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch)
-      if g:sync_taskwarrior==1
-        let taskjob = job_start("task sync")
-      endif
+      let gitjob = job_start(gitCommand)
+    endif
+
+    if g:sync_taskwarrior==1
+      let taskjob = jobstart("task sync")
     endif
   endfunction
 
@@ -105,4 +107,7 @@ augroup vimwiki
   " push changes only on at the end
   au! VimLeave * call <sid>git_action("git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch)
   " au! VimLeave * call <sid>push_changes()
+  """""""" Simplyfied version""""
+  " au! VimEnter * silent !git pull --rebase; :e
+  " au! BufWritePost * silent !git add .; git commit -m "vimwiki-git-sync Auto commit + push."; git push
 augroup END
