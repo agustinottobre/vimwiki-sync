@@ -146,6 +146,10 @@ augroup vimwiki
   " TODO
   " - Refactor functions with repeated operational code that cannot change
   "   independently
+  " - Issues jobstart when called from BuRead, BufEnter, FocusGained witout
+  "   opening vim from scratch do not seem to work. The only auto way to sync is
+  "   opening the wiki.
+  " - VimLeave and FocusLost should do the same, any other event to push?
   "
   " - VimEnter, BufRead, BufEnter FocusGained:
   "   fetch from origin
