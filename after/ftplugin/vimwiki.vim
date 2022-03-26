@@ -67,9 +67,14 @@ augroup vimwiki
   "   endif
   " endfunction
 
+  function! My_exit_cbNvim(job_id, data, event)
+    echom "[vimiwiki sync] Sync done"
+    execute 'checktime'
+  endfunction
+
   function! My_exit_cb(channel,msg )
     echom "[vimiwiki sync] Sync done"
-    execute 'checktime' 
+    execute 'checktime'
   endfunction
 
   function! My_close_cb(channel)
@@ -86,17 +91,21 @@ augroup vimwiki
 
       let g:zettel_synced = 1
       let gitCommand = "git -C " . g:zettel_dir . " pull --rebase origin " . g:vimwiki_sync_branch
-      let gitCallbacks = {"exit_cb": "My_exit_cb", "close_cb": "My_close_cb"}
+      let s:gitCallbacksNvim = {'on_exit': "My_exit_cbNvim"}
+      let s:gitCallbacksVim = {"exit_cb": "My_exit_cb", "close_cb": "My_close_cb"}
 
       if has("nvim")
-        let gitjob = jobstart(gitCommand, gitCallbacks)
+        let gitjob = jobstart(gitCommand, s:gitCallbacksNvim)
+        if g:sync_taskwarrior==1
+          let taskjob = jobstart("task sync")
+        endif
       else
-        let gitjob = job_start(gitCommand, gitCallbacks)
+        let gitjob = job_start(gitCommand, s:gitCallbacksVim)
+        if g:sync_taskwarrior==1
+          let taskjob = job_start("task sync")
+        endif
       endif
 
-      if g:sync_taskwarrior==1
-        let taskjob = jobstart("task sync")
-      endif
     endif
   endfunction
 
@@ -107,13 +116,16 @@ augroup vimwiki
     let gitCommand = "git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch
     if has("nvim")
       let gitjob = jobstart(gitCommand)
+      if g:sync_taskwarrior==1
+        let taskjob = jobstart("task sync")
+      endif
     else
       let gitjob = job_start(gitCommand)
+      if g:sync_taskwarrior==1
+        let taskjob = job_start("task sync")
+      endif
     endif
 
-    if g:sync_taskwarrior==1
-      let taskjob = jobstart("task sync")
-    endif
   endfunction
 
   " function! s:fetch_and_get_commit_count()
