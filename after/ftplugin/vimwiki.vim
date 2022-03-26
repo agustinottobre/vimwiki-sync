@@ -48,6 +48,25 @@ augroup vimwiki
     redraw!
   endfunction
 
+  " function! s:action(action)
+  "   let response = substitute(system(a:action), '\n\+$', '', '')
+  "   echo strtrans(response)
+  "   let result = confirm("Sure?")
+  "   execute "echo confirmed"
+  "   " confirm('',"Yes No Question? (&Yes\n&No)",1) == 1 ? "echo do somthing" : "echo do something else"
+  "   " prevent screen artifacts
+  "   redraw!
+  " endfunction
+
+  " function! Rebase()
+  "   let answer = confirm('Do thing?', "&Yes\n&No", 1)
+  "   if answer == 1
+  "     call system("do_thing")
+  "     redraw
+  "     echo "Did thing!"
+  "   endif
+  " endfunction
+
   function! My_exit_cb(channel,msg )
     echom "[vimiwiki sync] Sync done"
     execute 'checktime' 
@@ -86,7 +105,6 @@ augroup vimwiki
   " fixed
   function! s:push_changes()
     let gitCommand = "git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch
-
     if has("nvim")
       let gitjob = jobstart(gitCommand)
     else
@@ -98,6 +116,42 @@ augroup vimwiki
     endif
   endfunction
 
+  " function! s:fetch_and_get_commit_count()
+  "   let gitcommand = "git -C " . g:zettel_dir . " fetch; git -C " . g:zettel_dir . " rev-list @..@{u} --count)"
+  "   let gitCallbacks = {"exit_cb": "My_exit_cb", "close_cb": "My_close_cb"}
+
+  "   if has("nvim")
+  "     let gitjob = jobstart(gitCommand)
+  "   else
+  "     let gitjob = job_start(gitCommand)
+  "   endif
+
+  "   if g:sync_taskwarrior==1
+  "     let taskjob = jobstart("task sync")
+  "   endif
+  " endfunction
+  "
+  " TODO
+  " - Refactor functions with repeated operational code that cannot change
+  "   independently
+  "
+  " - VimEnter, BufRead, BufEnter FocusGained:
+  "   fetch from origin
+  "   if (local is behind origin and there are no local changes)
+  "     try automatic rebase
+  "     reload file and let me know in prompt
+  "   else
+  "     ask what to do
+  "
+  "   local commits behind origin: git rev-list @..@{u} --count
+  "   local changes not commited: git status --porcelain | wc -l
+  "
+  " - VimLeave, FocusLost
+  "   if no local commits ahead origin, do nothing
+  "   otherwise push to origin
+  "
+  "   local commits ahead origin: git rev-list @{u}..@ --count
+
   " sync changes at the start
   au! VimEnter * call <sid>pull_changes()
   au! BufRead * call <sid>pull_changes()
@@ -106,6 +160,10 @@ augroup vimwiki
   au! BufWritePost * call <sid>git_action("git -C " . g:zettel_dir . " add . ; git -C " . g:zettel_dir . " commit -m \"" . strftime(g:vimwiki_sync_commit_message) . "\"")
   " push changes only on at the end
   au! VimLeave * call <sid>git_action("git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch)
+
+  " au! FocusGained * call <sid>action("git -C " . g:zettel_dir . " fetch; [ $(git -C " . g:zettel_dir . " rev-list @..@{u} --count) = 0 ] && echo nothing to merge || echo There are remote changes to merge")
+  " If we do not have local commits to push, do nothing (no-op in bash is ':' ), otherwise push.
+  au! FocusLost * call <sid>git_action("[ $(git -C " . g:zettel_dir . " rev-list @{u}..@ --count) = 0 ] && : || git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch)
   " au! VimLeave * call <sid>push_changes()
   """""""" Simplyfied version""""
   " au! VimEnter * silent !git pull --rebase; :e
