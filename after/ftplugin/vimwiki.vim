@@ -175,7 +175,7 @@ augroup vimwiki
   " auto commit changes on each file change
   au! BufWritePost * call <sid>git_action("git -C " . g:zettel_dir . " add . ; git -C " . g:zettel_dir . " commit -m \"" . strftime(g:vimwiki_sync_commit_message) . "\"")
   " push changes only on at the end
-  au! VimLeave * call <sid>git_action("git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch)
+  au! VimLeave * call <sid>git_action("[ $(git -C " . g:zettel_dir . " rev-list @{u}..@ --count) = 0 ] && : || git -C " . g:zettel_dir . " push origin " . g:vimwiki_sync_branch)
 
   " au! FocusGained * call <sid>action("git -C " . g:zettel_dir . " fetch; [ $(git -C " . g:zettel_dir . " rev-list @..@{u} --count) = 0 ] && echo nothing to merge || echo There are remote changes to merge")
   " If we do not have local commits to push, do nothing (no-op in bash is ':' ), otherwise push.
